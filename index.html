@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>循物集 - 校园闲置资源循环平台</title>
+    <!-- 引入 React, ReactDOM, Babel 转换器 -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 配置自定义动画和样式以增强 UI/UX 体验 -->
+    <style>
+        html { 
+            scroll-behavior: smooth; 
+        }
+        
+        /* 页面级入场微动画 */
+        main > section {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .animate-fade-in-up {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        teal: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+const { useEffect, useMemo, useState } = React;
+
+function XunWuJiWebApp() {
+  const categories = [
+    { id: 'all', name: '全部', icon: '✨', desc: '查看平台全部资源与服务' },
+    { id: 'books', name: '教材书籍', icon: '📚', desc: '课本资料循环流转' },
+    { id: 'digital', name: '数码电子', icon: '💻', desc: '电脑耳机相机等' },
+    { id: 'dorm', name: '宿舍用品', icon: '🪑', desc: '桌椅台灯收纳用品' },
+    { id: 'fashion', name: '服饰鞋包', icon: '👕', desc: '日常穿搭闲置转卖' },
+    { id: 'skills', name: '技能服务', icon: '🎨', desc: '摄影设计美妆约拍' },
+    { id: 'jobs', name: '勤工助学', icon: '🧾', desc: '校内兼职与实践岗位' },
+  ];
+
+  const stats = [
+    { label: '平台累计发布', value: '12,860+' },
+    { label: '月活跃用户', value: '3,200+' },
+    { label: '累计节省支出', value: '¥186,000+' },
+    { label: '技能服务订单', value: '1,540+' },
+  ];
+
+  const announcements = [
+    '毕业季闲置专场上线，教材、桌椅、床品发布量快速增长',
+    '新增“勤工助学”专区，支持校内兼职与实践信息发布',
+    '完成实名校验与信用评价联动升级，交易环境进一步优化',
+  ];
+
+  const seedItems = [
+    { id: 1, title: '高等数学教材', price: '¥25', tag: '教材专区', icon: '📘', category: 'books', seller: '小循', detail: '同济第七版，九成新，笔记较少，适合大一课程使用。', meta: '西区教学楼 · 201 浏览 · 6 收藏', type: 'product' },
+    { id: 2, title: '九成新宿舍台灯', price: '¥18', tag: '宿舍好物', icon: '💡', category: 'dorm', seller: '小循', detail: '护眼暖光，支持三档调光，宿舍自提更方便。', meta: '北区宿舍 · 156 浏览 · 4 收藏', type: 'product' },
+    { id: 3, title: '二手办公椅', price: '¥88', tag: '闲置转卖', icon: '🪑', category: 'dorm', seller: '小循', detail: '椅背舒适，成色良好，适合宿舍和工作室场景。', meta: '图书馆附近 · 256 浏览 · 8 收藏', type: 'product' },
+    { id: 4, title: '摄影约拍服务', price: '¥60', tag: '技能服务', icon: '📷', category: 'skills', seller: '小循', detail: '校园写真、社团活动拍摄、证件照精修均可预约。', meta: '线上预约 · 92 浏览 · 3 收藏', type: 'service' },
+    { id: 5, title: '蓝牙耳机', price: '¥75', tag: '数码专区', icon: '🎧', category: 'digital', seller: '小循', detail: '音质正常，续航稳定，适合通勤与自习。', meta: '东区宿舍 · 87 浏览 · 5 收藏', type: 'product' },
+    { id: 6, title: '羽毛球拍一对', price: '¥66', tag: '运动闲置', icon: '🏸', category: 'fashion', seller: '小循', detail: '含拍套与球，适合日常运动。', meta: '操场附近 · 118 浏览 · 2 收藏', type: 'product' },
+    { id: 7, title: '社团海报设计', price: '¥30起', tag: '技能服务', icon: '🖼️', category: 'skills', seller: '小循', detail: '活动海报、比赛展板、公众号首图均可制作。', meta: '线上沟通 · 122 浏览 · 9 收藏', type: 'service' },
+    { id: 8, title: '图书馆助理兼职', price: '¥20/时', tag: '勤工助学', icon: '📋', category: 'jobs', seller: '小循', detail: '按排班值守，工作稳定，适合课余时间参与。', meta: '图书馆一层 · 78 浏览 · 6 报名', type: 'job' },
+    { id: 9, title: '考研资料整套转让', price: '¥60', tag: '考研资料', icon: '📝', category: 'books', seller: '小循', detail: '英语、数学、专业课资料齐全，笔记完整，适合备考同学。', meta: '北区宿舍 · 189 浏览 · 5 留言', type: 'product' },
+    { id: 10, title: '宿舍学习桌', price: '¥120', tag: '宿舍家具', icon: '📚', category: 'dorm', seller: '小循', detail: '带书架与抽屉，结构稳固，适合宿舍和自习场景。', meta: '图书馆附近 · 256 浏览 · 8 留言', type: 'product' },
+    { id: 11, title: '校内助教兼职信息', price: '¥18/时', tag: '校内兼职', icon: '🧑‍🏫', category: 'jobs', seller: '小循', detail: '周内晚间值班与资料整理，适合想补贴生活费的同学。', meta: '行政楼附近 · 76 浏览 · 6 留言', type: 'job' },
+    { id: 12, title: '二手显示器 24 寸', price: '¥220', tag: '数码设备', icon: '🖥️', category: 'digital', seller: '小循', detail: '适合宿舍追剧、写论文、做设计，接口齐全。', meta: '南区宿舍 · 132 浏览 · 4 留言', type: 'product' },
+    { id: 13, title: '闲置风扇低价转出', price: '¥35', tag: '宿舍电器', icon: '🌀', category: 'dorm', seller: '小循', detail: '夏天宿舍必备，风力足，使用正常。', meta: '东门附近 · 141 浏览 · 7 留言', type: 'product' },
+    { id: 14, title: '毕业西装租赁服务', price: '¥28/天', tag: '租赁服务', icon: '🤵', category: 'fashion', seller: '小循', detail: '答辩、面试、拍照都适合，支持短租。', meta: '线上预约 · 58 浏览 · 2 留言', type: 'service' },
+    { id: 15, title: '英语口语陪练', price: '¥40/小时', tag: '口语服务', icon: '🗣️', category: 'skills', seller: '小循', detail: '四六级、考研复试、日常口语均可陪练。', meta: '线上/线下 · 83 浏览 · 5 留言', type: 'service' },
+    { id: 16, title: '单反相机租赁', price: '¥68/天', tag: '设备租赁', icon: '📸', category: 'digital', seller: '小循', detail: '适合活动拍摄、社团记录与毕业照拍摄。', meta: '校内面交 · 65 浏览 · 3 预约', type: 'service' },
+  ];
+
+  const testimonials = [
+    { name: '刘同学', role: '大二 · 信息工程', text: '以前找二手教材要翻很多群，现在在循物集里搜一下就能找到，省时很多。' },
+    { name: '王同学', role: '大三 · 视觉传达', text: '我在平台上接到了海报设计单，既赚到了零花钱，也积累了作品。' },
+    { name: '陈同学', role: '大四 · 经管学院', text: '毕业搬宿舍的时候把很多闲置都转掉了，真的比直接丢掉划算太多。' },
+  ];
+
+  const faqs = [
+    { q: '平台如何保证交易安全？', a: '通过校园实名、信用评价、内容审核与异常信息反馈机制，共同构成交易安全保障体系。' },
+    { q: '除了二手物品还能发布什么？', a: '还可以发布技能服务、校内兼职、活动需求与校园生活类资源信息。' },
+    { q: '平台更适合哪些校园场景？', a: '教材流转、宿舍闲置、毕业季清仓、社团服务、勤工助学对接等都非常适合。' },
+  ];
+
+  const advantages = [
+    '校园实名认证，交易更安心',
+    '闲置交易、技能服务、勤工助学一体化',
+    '线上小程序 + 线下社群联动运营',
+    '围绕高校场景设计，供需匹配更高效',
+  ];
+
+  const aiKnowledgeBase = [
+    { id: 'ai-1', title: '推荐：高等数学教材', type: '教材匹配', summary: '根据“便宜、基础课、急需”这类需求，优先推荐价格低、使用频率高的教材。', relatedIds: [1, 9] },
+    { id: 'ai-2', title: '推荐：宿舍学习桌与台灯组合', type: '宿舍场景', summary: '如果用户表达“宿舍学习、晚上用、可自提”，系统会优先联想桌椅、台灯、风扇等配套商品。', relatedIds: [2, 10, 13] },
+    { id: 'ai-3', title: '推荐：海报设计与摄影约拍', type: '技能服务', summary: '针对“答辩、社团活动、拍照宣传”等意图，优先匹配设计、修图、摄影类服务。', relatedIds: [4, 7, 15] },
+    { id: 'ai-4', title: '推荐：校内兼职与助理岗位', type: '勤工助学', summary: '当用户搜索“找兼职、补贴生活费、时间灵活”时，优先推荐校内岗位与助理类信息。', relatedIds: [8, 11] },
+    { id: 'ai-5', title: '推荐：数码电子装备', type: '数码搜索', summary: '针对“显示器、耳机、做设计、宿舍追剧”等需求，优先返回数码设备信息。', relatedIds: [5, 12, 16] },
+  ];
+
+  const [items, setItems] = useState(seedItems);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const [phoneTab, setPhoneTab] = useState('buy');
+  const [currentTime, setCurrentTime] = useState('');
+  const [activePage, setActivePage] = useState('home');
+  const [savedIds, setSavedIds] = useState([]);
+  const [message, setMessage] = useState('');
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiResults, setAiResults] = useState([]);
+  const [aiStatus, setAiStatus] = useState('');
+  const [publishForm, setPublishForm] = useState({
+    title: '',
+    price: '',
+    category: 'books',
+    type: 'product',
+    seller: '我的发布',
+    detail: '',
+    meta: '校内发布 · 刚刚上线',
+    tag: '新发布',
+    icon: '📦',
+  });
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      setCurrentTime(`${h}:${m}`);
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(''), 2400);
+    return () => clearTimeout(timer);
+  }, [message]);
+
+  const allItems = useMemo(() => items, [items]);
+  const featured = useMemo(() => items.slice(0, 8), [items]);
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const categoryMatch = activeCategory === 'all' || item.category === activeCategory;
+      const searchMatch =
+        !searchText ||
+        `${item.title} ${item.detail} ${item.meta} ${item.tag}`.includes(searchText);
+      return categoryMatch && searchMatch;
+    });
+  }, [items, activeCategory, searchText]);
+
+  const filteredFeatured = useMemo(() => {
+    return featured.filter((item) => {
+      const categoryMatch = activeCategory === 'all' || item.category === activeCategory;
+      const searchMatch = !searchText || `${item.title} ${item.tag}`.includes(searchText);
+      return categoryMatch && searchMatch;
+    });
+  }, [featured, activeCategory, searchText]);
+
+  const savedItems = useMemo(() => items.filter((item) => savedIds.includes(item.id)), [items, savedIds]);
+
+  const quickSearch = (keyword) => {
+    setSearchText(keyword);
+    setActiveCategory('all');
+    setActivePage('market');
+    const found = allItems.find((item) => item.title.includes(keyword) || item.detail.includes(keyword));
+    if (found) setSelectedItem(found);
+  };
+
+  const runAISearch = (queryText) => {
+    const q = (queryText || aiQuery).trim();
+    if (!q) {
+      setAiStatus('请输入你的需求，例如“帮我找便宜教材”或“我想找校内兼职”。');
+      setAiResults([]);
+      return;
+    }
+
+    const keywordMap = [
+      { keys: ['教材', '考研', '书', '数学', '英语', '资料'], category: 'books', knowledge: 'ai-1' },
+      { keys: ['宿舍', '桌', '台灯', '风扇', '收纳'], category: 'dorm', knowledge: 'ai-2' },
+      { keys: ['设计', '摄影', '答辩', '海报', '修图', '约拍'], category: 'skills', knowledge: 'ai-3' },
+      { keys: ['兼职', '岗位', '助理', '勤工', '补贴'], category: 'jobs', knowledge: 'ai-4' },
+      { keys: ['耳机', '显示器', '数码', '电脑', '追剧'], category: 'digital', knowledge: 'ai-5' },
+    ];
+
+    const matchedRule = keywordMap.find((rule) => rule.keys.some((k) => q.includes(k)));
+    const matchedCategory = matchedRule?.category || 'all';
+    const matchedKnowledge = matchedRule ? aiKnowledgeBase.find((item) => item.id === matchedRule.knowledge) : null;
+
+    const pool = items.filter((item) => {
+      const categoryMatch = matchedCategory === 'all' || item.category === matchedCategory;
+      const text = `${item.title} ${item.detail || ''} ${item.tag || ''} ${item.meta || ''}`;
+      const semanticMatch = q.split(/\s+/).some((word) => word && text.includes(word));
+      return categoryMatch || semanticMatch;
+    }).slice(0, 9);
+
+    setActivePage('ai');
+    setActiveCategory(matchedCategory);
+    setSearchText(q);
+    setAiResults(pool);
+    setAiStatus(
+      matchedKnowledge
+        ? `AI 已识别你的意图偏向“${matchedKnowledge.type}”，并为你整理了更相关的资源。`
+        : 'AI 已根据你的自然语言需求进行语义匹配，以下是优先结果。'
+    );
+  };
+
+  const toggleSave = (id) => {
+    setSavedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
+    setMessage(savedIds.includes(id) ? '已取消收藏' : '已加入收藏');
+  };
+
+  const handlePublish = (e) => {
+    e.preventDefault();
+    if (!publishForm.title.trim() || !publishForm.price.trim() || !publishForm.detail.trim()) {
+      setMessage('请完整填写标题、价格和描述');
+      return;
+    }
+
+    const categoryInfo = categories.find((c) => c.id === publishForm.category);
+    const newItem = {
+      id: Date.now(),
+      title: publishForm.title.trim(),
+      price: publishForm.price.trim(),
+      tag: publishForm.tag,
+      icon: publishForm.icon,
+      category: publishForm.category,
+      seller: publishForm.seller,
+      detail: publishForm.detail.trim(),
+      meta: '校内发布 · 刚刚上线',
+      type: publishForm.type,
+    };
+
+    setItems((prev) => [newItem, ...prev]);
+    setPublishForm({
+      title: '',
+      price: '',
+      category: categoryInfo?.id || 'books',
+      type: 'product',
+      seller: '我的发布',
+      detail: '',
+      meta: '校内发布 · 刚刚上线',
+      tag: '新发布',
+      icon: '📦',
+    });
+    setActiveCategory('all');
+    setActivePage('market');
+    setMessage('发布成功，已加入平台列表');
+  };
+
+  const sectionButton = (id, label) => (
+    <button
+      key={id}
+      onClick={() => setActivePage(id)}
+      className={`rounded-full px-4 py-2 text-sm transition ${activePage === id ? 'bg-teal-500 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+    >
+      {label}
+    </button>
+  );
+
+  const openItem = (item) => setSelectedItem(item);
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-500 text-xl font-bold text-white shadow-sm">循</div>
+            <div>
+              <div className="text-lg font-bold">循物集</div>
+              <div className="text-xs text-slate-500">校园闲置资源循环平台</div>
+            </div>
+          </div>
+          <nav className="hidden items-center gap-2 md:flex">
+            {sectionButton('home', '首页')}
+            {sectionButton('market', '社区市场')}
+            {sectionButton('publish', '发布中心')}
+            {sectionButton('ai', 'AI搜索')}
+            {sectionButton('services', '服务生态')}
+            {sectionButton('features', '平台机制')}
+            {sectionButton('saved', '我的收藏')}
+            {sectionButton('about', '项目介绍')}
+          </nav>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setActivePage('publish')} className="hidden rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 sm:inline-flex">发布闲置</button>
+            <button onClick={() => quickSearch('教材')} className="rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-600">立即体验</button>
+          </div>
+        </div>
+      </header>
+
+      {message && (
+        <div className="fixed right-5 top-24 z-50 rounded-2xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl">
+          {message}
+        </div>
+      )}
+
+      <main>
+        {(activePage === 'home' || activePage === 'market' || activePage === 'publish' || activePage === 'ai' || activePage === 'services' || activePage === 'features' || activePage === 'saved' || activePage === 'about') && (
+          <section className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-50 via-cyan-50 to-orange-50" />
+            <div className="relative mx-auto max-w-7xl px-6 py-12 md:py-16">
+              <div className="grid items-center gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+                <div>
+                  <div className="inline-flex items-center rounded-full border border-teal-100 bg-white px-4 py-2 text-sm text-teal-700 shadow-sm">校园实名 · 安全交易 · 绿色循环</div>
+                  <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-slate-900 md:text-6xl">让校园闲置<span className="block text-teal-600">重新流动起来</span></h1>
+                  <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">循物集聚焦高校场景，连接闲置物品交易、技能服务预约与勤工助学对接，以实名、信用、审核和高效匹配机制，构建可信、便捷、可持续的校园资源循环平台。</p>
+                  <div className="mt-8 flex flex-wrap gap-4">
+                    <button onClick={() => setActivePage('market')} className="rounded-full bg-teal-500 px-6 py-3 font-semibold text-white shadow-lg shadow-teal-100 hover:bg-teal-600">浏览校园好物</button>
+                    <button onClick={() => setActivePage('publish')} className="rounded-full border border-slate-200 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">去发布内容</button>
+                    <button onClick={() => setActivePage('ai')} className="rounded-full border border-slate-200 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">AI 智能搜索</button>
+                  </div>
+                  <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+                    {stats.map((item) => (
+                      <div key={item.label} className="rounded-2xl border border-slate-100 bg-white/90 px-4 py-4 shadow-sm">
+                        <div className="text-xl font-black text-teal-600">{item.value}</div>
+                        <div className="mt-1 text-sm text-slate-600">{item.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="lg:pl-8">
+                  <div className="mx-auto w-full max-w-md rounded-[32px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-200">
+                    <div className="overflow-hidden rounded-[28px] border border-slate-100 bg-slate-50">
+                      <div className="bg-teal-500 px-5 pt-5 pb-4 text-white">
+                        <div className="flex items-center justify-between text-sm opacity-90">
+                          <span>{currentTime || '00:00'}</span>
+                          <span>循物集</span>
+                          <span>校园闲置</span>
+                        </div>
+                        <div className="mt-4 rounded-2xl bg-white/95 px-4 py-3">
+                          <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="搜索教材、台灯、桌椅、摄影服务" className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400" />
+                        </div>
+                        <button onClick={() => runAISearch(searchText)} className="mt-3 w-full rounded-2xl bg-slate-900/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-900/25">AI 智能搜索</button>
+                        <div className="mt-4 flex justify-center gap-10 text-lg font-semibold">
+                          <button onClick={() => setPhoneTab('buy')} className={phoneTab === 'buy' ? 'border-b-4 border-white pb-1' : 'opacity-80'}>买好物</button>
+                          <button onClick={() => setPhoneTab('sell')} className={phoneTab === 'sell' ? 'border-b-4 border-white pb-1' : 'opacity-80'}>卖闲置</button>
+                        </div>
+                      </div>
+                      <div className="space-y-4 bg-white p-4">
+                        <button onClick={() => openItem({ title: '校园闲置轻松流通', seller: '循物集平台', price: '立即参与', detail: '平台通过校园实名、信用评价和分类匹配机制，让闲置在校园内部更快流通。' })} className="w-full rounded-3xl bg-gradient-to-r from-cyan-100 via-teal-100 to-orange-50 p-4 text-left">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-2xl font-black leading-tight text-teal-700">校园闲置<br />轻松流通</div>
+                              <div className="mt-2 text-sm text-slate-600">让闲置重新产生价值</div>
+                            </div>
+                            <div className="text-5xl">📦</div>
+                          </div>
+                        </button>
+                        <div className="grid grid-cols-4 gap-3 text-center">
+                          {categories.slice(1, 5).map((c) => (
+                            <button key={c.name} onClick={() => { setActiveCategory(c.id); setActivePage('market'); }} className={`space-y-2 rounded-2xl p-2 transition ${activeCategory === c.id ? 'bg-teal-50 ring-1 ring-teal-200' : 'hover:bg-slate-50'}`}>
+                              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">{c.icon}</div>
+                              <div className="text-[11px] leading-tight text-slate-700">{c.name}</div>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="space-y-3">
+                          {(phoneTab === 'buy' ? filteredFeatured.slice(0, 3) : items.slice(0, 3)).map((item) => (
+                            <button key={item.id} onClick={() => openItem(item)} className="w-full rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-2xl">{item.icon}</div>
+                                  <div>
+                                    <div className="text-xs font-medium text-teal-600">{item.tag}</div>
+                                    <div className="font-semibold">{item.title}</div>
+                                  </div>
+                                </div>
+                                <div className="font-bold text-orange-500">{item.price}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activePage === 'home' && (
+          <>
+            <section className="mx-auto max-w-7xl px-6 py-14">
+              <div className="grid gap-6 lg:grid-cols-3">
+                {announcements.map((item, idx) => (
+                  <div key={idx} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="text-sm font-semibold text-teal-600">平台动态 0{idx + 1}</div>
+                    <p className="mt-3 leading-7 text-slate-700">{item}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="mx-auto max-w-7xl px-6 py-8">
+              <div className="flex flex-wrap items-end justify-between gap-6">
+                <div>
+                  <div className="text-sm font-semibold text-teal-600">Featured Resources</div>
+                  <h2 className="mt-2 text-3xl font-black text-slate-900">热门资源与校园精选</h2>
+                </div>
+                <button onClick={() => setActivePage('market')} className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">查看更多</button>
+              </div>
+              <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                {featured.map((item) => (
+                  <button key={item.id} onClick={() => openItem(item)} className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-4xl">{item.icon}</div>
+                    <div className="mt-4 text-xs font-semibold text-teal-600">{item.tag}</div>
+                    <h3 className="mt-2 text-lg font-bold text-slate-900">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</p>
+                    <div className="mt-4 text-lg font-black text-orange-500">{item.price}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="mx-auto max-w-7xl px-6 py-16">
+              <div className="text-center">
+                <div className="text-sm font-semibold text-teal-600">User Voices</div>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">真实校园使用反馈</h2>
+              </div>
+              <div className="mt-10 grid gap-5 lg:grid-cols-3">
+                {testimonials.map((item) => (
+                  <div key={item.name} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <p className="leading-8 text-slate-700">“{item.text}”</p>
+                    <div className="mt-5">
+                      <div className="font-bold text-slate-900">{item.name}</div>
+                      <div className="text-sm text-slate-500">{item.role}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+
+        {activePage === 'market' && (
+          <section className="border-y border-slate-200 bg-white">
+            <div className="mx-auto max-w-7xl px-6 py-16">
+              <div className="grid items-start gap-10 lg:grid-cols-[1.2fr_0.8fr]">
+                <div>
+                  <div className="text-sm font-semibold text-teal-600">Campus Market</div>
+                  <h2 className="mt-2 text-3xl font-black text-slate-900">校园社区与闲置信息流</h2>
+                  <p className="mt-3 max-w-2xl leading-7 text-slate-600">通过校园社区内容流，将闲置发布、需求匹配和互动交流整合到同一界面，降低信息分散带来的搜索和沟通成本。</p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    {['教材', '桌子', '设计', '兼职', '耳机', '风扇'].map((keyword) => (
+                      <button key={keyword} onClick={() => quickSearch(keyword)} className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 hover:bg-slate-200">{keyword}</button>
+                    ))}
+                  </div>
+                  <div className="mt-6 grid gap-4 md:grid-cols-3">
+                    {categories.map((item) => (
+                      <button key={item.id} onClick={() => setActiveCategory(item.id)} className={`rounded-2xl border px-4 py-4 text-left transition ${activeCategory === item.id ? 'border-teal-300 bg-teal-50' : 'border-slate-200 bg-slate-50 hover:bg-white'}`}>
+                        <div className="text-xl">{item.icon}</div>
+                        <div className="mt-2 font-semibold text-slate-900">{item.name}</div>
+                        <div className="mt-1 text-sm text-slate-500">{item.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-8 grid gap-4 md:grid-cols-2">
+                    {filteredItems.length > 0 ? filteredItems.map((item) => (
+                      <div key={item.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-semibold text-teal-600">{item.seller}</div>
+                            <h3 className="mt-1 text-lg font-bold text-slate-900">{item.title}</h3>
+                          </div>
+                          <div className="whitespace-nowrap text-lg font-bold text-orange-500">{item.price}</div>
+                        </div>
+                        <p className="mt-3 leading-7 text-slate-600">{item.detail}</p>
+                        <div className="mt-4 text-sm text-slate-400">{item.meta}</div>
+                        <div className="mt-5 flex flex-wrap gap-3">
+                          <button onClick={() => openItem(item)} className="rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600">查看详情</button>
+                          <button onClick={() => toggleSave(item.id)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">{savedIds.includes(item.id) ? '取消收藏' : '收藏'}</button>
+                        </div>
+                      </div>
+                    )) : <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">当前筛选下暂无结果，可以试试其他关键词或分类。</div>}
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="rounded-[32px] bg-gradient-to-br from-slate-900 via-teal-900 to-slate-800 p-8 text-white shadow-2xl">
+                    <div className="text-sm font-semibold text-teal-200">Platform Advantages</div>
+                    <h3 className="mt-2 text-2xl font-black leading-tight">为什么循物集更适合高校场景？</h3>
+                    <div className="mt-6 space-y-4">
+                      {advantages.map((item) => (
+                        <button key={item} onClick={() => openItem({ title: item, seller: '平台优势', price: '核心价值', detail: item })} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-left text-sm leading-7 text-slate-100 transition hover:bg-white/10">{item}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="text-sm font-semibold text-teal-600">当前交互状态</div>
+                    <div className="mt-4 space-y-3 text-sm text-slate-600">
+                      <div>当前分类：<span className="font-semibold text-slate-900">{categories.find((c) => c.id === activeCategory)?.name}</span></div>
+                      <div>搜索关键词：<span className="font-semibold text-slate-900">{searchText || '未输入'}</span></div>
+                      <div>平台商品总数：<span className="font-semibold text-slate-900">{items.length}</span></div>
+                      <div>收藏数量：<span className="font-semibold text-slate-900">{savedIds.length}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activePage === 'publish' && (
+          <section className="mx-auto max-w-7xl px-6 py-16">
+            <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="text-sm font-semibold text-teal-600">Publish Center</div>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">发布商品 / 服务 / 岗位</h2>
+                <p className="mt-4 leading-8 text-slate-600">你可以在这里完整填写标题、价格、分类、内容描述等信息，提交后会立即进入平台列表，用于展示真实发布逻辑。</p>
+                <form onSubmit={handlePublish} className="mt-8 space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">标题</label>
+                    <input value={publishForm.title} onChange={(e) => setPublishForm((prev) => ({ ...prev, title: e.target.value }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-400" placeholder="请输入标题，如：二手显示器 24 寸" />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">价格</label>
+                      <input value={publishForm.price} onChange={(e) => setPublishForm((prev) => ({ ...prev, price: e.target.value }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-400" placeholder="如：¥88 或 ¥20/时" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">分类</label>
+                      <select value={publishForm.category} onChange={(e) => setPublishForm((prev) => ({ ...prev, category: e.target.value }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-400">
+                        {categories.filter((c) => c.id !== 'all').map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">发布类型</label>
+                      <select value={publishForm.type} onChange={(e) => setPublishForm((prev) => ({ ...prev, type: e.target.value }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-400">
+                        <option value="product">商品</option>
+                        <option value="service">服务</option>
+                        <option value="job">岗位</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">标签</label>
+                      <input value={publishForm.tag} onChange={(e) => setPublishForm((prev) => ({ ...prev, tag: e.target.value }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-400" placeholder="如：宿舍好物" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">图标</label>
+                      <input value={publishForm.icon} onChange={(e) => setPublishForm((prev) => ({ ...prev, icon: e.target.value }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-400" placeholder="如：📦" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">描述</label>
+                    <textarea value={publishForm.detail} onChange={(e) => setPublishForm((prev) => ({ ...prev, detail: e.target.value }))} className="min-h-[150px] w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-teal-400" placeholder="请输入商品成色、服务内容或岗位说明" />
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button type="submit" className="rounded-full bg-teal-500 px-6 py-3 font-semibold text-white hover:bg-teal-600">立即发布</button>
+                    <button type="button" onClick={() => setPublishForm({ title: '', price: '', category: 'books', type: 'product', seller: '我的发布', detail: '', meta: '校内发布 · 刚刚上线', tag: '新发布', icon: '📦' })} className="rounded-full border border-slate-200 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">重置内容</button>
+                  </div>
+                </form>
+              </div>
+              <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="text-sm font-semibold text-teal-600">Live Preview</div>
+                <h3 className="mt-2 text-3xl font-black text-slate-900">发布预览</h3>
+                <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-semibold text-teal-600">{publishForm.tag || '新发布'}</div>
+                      <h4 className="mt-2 text-2xl font-black text-slate-900">{publishForm.title || '这里显示发布标题'}</h4>
+                    </div>
+                    <div className="text-3xl">{publishForm.icon || '📦'}</div>
+                  </div>
+                  <div className="mt-5 text-2xl font-black text-orange-500">{publishForm.price || '¥0'}</div>
+                  <p className="mt-5 leading-8 text-slate-600">{publishForm.detail || '这里会展示你填写的详细描述，用于预览商品、服务或岗位发布效果。'}</p>
+                  <div className="mt-5 text-sm text-slate-400">分类：{categories.find((c) => c.id === publishForm.category)?.name} · 类型：{publishForm.type}</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activePage === 'ai' && (
+          <section className="mx-auto max-w-7xl px-6 py-16">
+            <div className="text-center">
+              <div className="text-sm font-semibold text-teal-600">AI Search Assistant</div>
+              <h2 className="mt-2 text-3xl font-black text-slate-900">AI 智能搜索与需求理解</h2>
+              <p className="mx-auto mt-4 max-w-3xl leading-7 text-slate-600">支持自然语言检索，不只匹配关键词，而是尝试理解你的校园需求场景，例如“帮我找便宜教材”“我想找一份校内兼职”“需要答辩海报设计”。</p>
+            </div>
+            <div className="mt-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="text-lg font-bold text-slate-900">输入你的需求</div>
+                <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                  <textarea value={aiQuery} onChange={(e) => setAiQuery(e.target.value)} placeholder="例如：我想找便宜一点的考研教材；我想接一个答辩海报设计单；我想找校内兼职。" className="min-h-[120px] w-full resize-none bg-transparent text-base leading-7 text-slate-700 outline-none placeholder:text-slate-400" />
+                </div>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  {['帮我找便宜教材', '我想找校内兼职', '有没有宿舍台灯和桌子', '我需要答辩海报设计'].map((prompt) => (
+                    <button key={prompt} onClick={() => { setAiQuery(prompt); runAISearch(prompt); }} className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 hover:bg-slate-200">{prompt}</button>
+                  ))}
+                </div>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <button onClick={() => runAISearch(aiQuery)} className="rounded-full bg-teal-500 px-6 py-3 font-semibold text-white hover:bg-teal-600">开始 AI 搜索</button>
+                  <button onClick={() => { setAiQuery(''); setAiResults([]); setAiStatus(''); }} className="rounded-full border border-slate-200 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">清空结果</button>
+                </div>
+                {aiStatus && <div className="mt-6 rounded-2xl bg-teal-50 px-4 py-4 text-sm leading-7 text-teal-800">{aiStatus}</div>}
+              </div>
+              <div className="space-y-5">
+                {aiKnowledgeBase.map((item) => (
+                  <div key={item.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-teal-600">{item.type}</div>
+                    <h3 className="mt-2 text-xl font-bold text-slate-900">{item.title}</h3>
+                    <p className="mt-3 leading-7 text-slate-600">{item.summary}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-12">
+              <div className="flex flex-wrap items-end justify-between gap-6">
+                <div>
+                  <div className="text-sm font-semibold text-teal-600">AI Results</div>
+                  <h3 className="mt-2 text-2xl font-black text-slate-900">智能推荐结果</h3>
+                </div>
+              </div>
+              <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {(aiResults.length > 0 ? aiResults : items.slice(0, 6)).map((item) => (
+                  <div key={item.id} className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-xs font-semibold text-teal-600">{item.tag || item.type || '智能推荐'}</div>
+                        <h4 className="mt-2 text-lg font-bold text-slate-900">{item.title}</h4>
+                      </div>
+                      <div className="whitespace-nowrap text-lg font-black text-orange-500">{item.price || '推荐'}</div>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">{item.detail}</p>
+                    <div className="mt-5 flex gap-3">
+                      <button onClick={() => openItem(item)} className="rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600">查看详情</button>
+                      <button onClick={() => toggleSave(item.id)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">收藏</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activePage === 'services' && (
+          <section className="mx-auto max-w-7xl px-6 py-16">
+            <div className="text-center">
+              <div className="text-sm font-semibold text-teal-600">Service Ecosystem</div>
+              <h2 className="mt-2 text-3xl font-black text-slate-900">从闲置交易延伸到校园服务生态</h2>
+              <p className="mx-auto mt-4 max-w-3xl leading-7 text-slate-600">围绕大学生日常学习、生活与实践需求，平台在二手流通基础上进一步扩展技能服务与勤工助学场景。</p>
+            </div>
+            <div className="mt-10 grid gap-6 lg:grid-cols-3">
+              {[
+                ['闲置交易', '教材、数码、宿舍用品、服饰鞋包等高频品类快速流转。'],
+                ['技能服务', '摄影、美工、PPT、美妆、修图、口语陪练等校园技能变现。'],
+                ['勤工助学', '校内助理、值班、资料整理、活动协助等灵活岗位对接。'],
+              ].map(([title, desc]) => (
+                <div key={title} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+                  <h3 className="text-2xl font-black text-slate-900">{title}</h3>
+                  <p className="mt-4 leading-8 text-slate-600">{desc}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {items.filter((item) => ['skills', 'jobs'].includes(item.category)).map((item) => (
+                <button key={item.id} onClick={() => openItem(item)} className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                  <div className="text-4xl">{item.icon}</div>
+                  <div className="mt-4 text-xs font-semibold text-teal-600">{item.tag}</div>
+                  <div className="mt-2 text-lg font-bold text-slate-900">{item.title}</div>
+                  <div className="mt-3 text-sm leading-7 text-slate-600">{item.detail}</div>
+                  <div className="mt-4 font-black text-orange-500">{item.price}</div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {activePage === 'features' && (
+          <section className="mx-auto max-w-7xl px-6 py-16">
+            <div className="text-center">
+              <div className="text-sm font-semibold text-teal-600">Mechanism-Driven Platform</div>
+              <h2 className="mt-2 text-3xl font-black text-slate-900">关键机制支撑平台稳定运行</h2>
+              <p className="mx-auto mt-4 max-w-3xl leading-7 text-slate-600">以实名认证、信用评价、审核风控、场景化匹配和数据沉淀为核心，形成适配校园资源循环场景的运行体系。</p>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+              {[
+                ['实名认证', '保障用户身份真实可追溯，降低匿名交易风险。'],
+                ['信用评价', '根据履约与评价形成动态信用约束。'],
+                ['审核风控', '对违规信息与异常内容进行筛查治理。'],
+                ['场景匹配', '围绕教材、宿舍、技能服务等分类高效对接。'],
+                ['数据沉淀', '基于浏览、交易与反馈不断优化平台运营。'],
+              ].map(([title, desc]) => (
+                <button key={title} onClick={() => openItem({ title, seller: '平台机制', price: '机制说明', detail: desc })} className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                  <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{desc}</p>
+                </button>
+              ))}
+            </div>
+            <div className="mt-14 grid gap-5 lg:grid-cols-3">
+              {faqs.map((item) => (
+                <div key={item.q} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-900">{item.q}</h3>
+                  <p className="mt-3 leading-7 text-slate-600">{item.a}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {activePage === 'saved' && (
+          <section className="mx-auto max-w-7xl px-6 py-16">
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <div className="text-sm font-semibold text-teal-600">Saved Items</div>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">我的收藏</h2>
+              </div>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {savedItems.length > 0 ? savedItems.map((item) => (
+                <div key={item.id} className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm">
+                  <div className="text-3xl">{item.icon}</div>
+                  <div className="mt-4 text-xs font-semibold text-teal-600">{item.tag}</div>
+                  <h3 className="mt-2 text-lg font-bold text-slate-900">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{item.detail}</p>
+                  <div className="mt-4 font-black text-orange-500">{item.price}</div>
+                  <div className="mt-5 flex gap-3">
+                    <button onClick={() => openItem(item)} className="rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600">查看详情</button>
+                    <button onClick={() => toggleSave(item.id)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">移除收藏</button>
+                  </div>
+                </div>
+              )) : <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">你还没有收藏内容，去社区市场逛逛吧。</div>}
+            </div>
+          </section>
+        )}
+
+        {activePage === 'about' && (
+          <section className="mx-auto max-w-7xl px-6 py-16">
+            <div className="grid items-start gap-8 lg:grid-cols-[1fr_1fr]">
+              <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="text-sm font-semibold text-teal-600">Project Overview</div>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">循物集是什么？</h2>
+                <p className="mt-5 leading-8 text-slate-600">循物集是一款面向高校场景的闲置资源循环平台，致力于解决校园二手交易中信息分散、信任不足、匹配效率低等问题。平台在闲置交易之外，还延伸到技能服务预约与勤工助学信息对接，力图形成更完整的校园资源循环生态。</p>
+                <p className="mt-4 leading-8 text-slate-600">与社会化综合平台相比，循物集更强调校园实名闭环、场景适配与低信任成本；与分散的群聊交易相比，平台则更具规范化、可管理与可持续运营的特征。</p>
+              </div>
+              <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="text-sm font-semibold text-teal-600">Core Values</div>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">项目核心价值</h2>
+                <div className="mt-6 space-y-4">
+                  {[
+                    '推动闲置资源高效循环，减少校园浪费',
+                    '降低学生生活成本，提升资源使用效率',
+                    '为学生技能变现与实践成长提供平台',
+                    '服务绿色校园、平安校园与数字化校园建设',
+                  ].map((item) => (
+                    <div key={item} className="rounded-2xl bg-slate-50 px-4 py-4 leading-7 text-slate-700">{item}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+      </main>
+
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-12">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <div className="font-bold text-slate-900">循物集</div>
+              <div className="mt-3 text-sm leading-7 text-slate-500">共享经济背景下的大学生闲置资源循环平台，服务校园绿色循环与资源再利用。</div>
+            </div>
+            <div>
+              <div className="font-bold text-slate-900">平台模块</div>
+              <div className="mt-3 space-y-2 text-sm text-slate-500"><div>闲置交易</div><div>技能服务</div><div>勤工助学</div><div>校园社区</div></div>
+            </div>
+            <div>
+              <div className="font-bold text-slate-900">适用场景</div>
+              <div className="mt-3 space-y-2 text-sm text-slate-500"><div>毕业季清仓</div><div>教材流转</div><div>宿舍搬迁</div><div>社团服务对接</div></div>
+            </div>
+            <div>
+              <div className="font-bold text-slate-900">原型说明</div>
+              <div className="mt-3 text-sm leading-7 text-slate-500">当前为可交互网页原型，已包含发布、检索、收藏、AI 搜索与详情弹窗等完整交互。</div>
+            </div>
+          </div>
+          <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-6 md:flex-row">
+            <div className="text-sm text-slate-400">© {new Date().getFullYear()} XunWuJi Campus Marketplace Prototype</div>
+            <div className="flex flex-wrap gap-3 text-xs text-slate-400"><span>校园实名</span><span>信用评价</span><span>风控审核</span><span>绿色循环</span></div>
+          </div>
+        </div>
+      </footer>
+
+      {selectedItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+          <div className="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-teal-600">{selectedItem.seller || '循物集'}</div>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">{selectedItem.title}</h3>
+              </div>
+              <button onClick={() => setSelectedItem(null)} className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200">关闭</button>
+            </div>
+            <div className="mt-5 rounded-2xl bg-slate-50 p-4">
+              <div className="text-sm text-slate-500">参考价格</div>
+              <div className="mt-1 text-2xl font-bold text-orange-500">{selectedItem.price || '面议'}</div>
+            </div>
+            <p className="mt-5 leading-8 text-slate-600">{selectedItem.detail || '这里可以继续扩展为详情页内容。'}</p>
+            <div className="mt-3 text-sm text-slate-400">{selectedItem.meta}</div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button className="rounded-full bg-teal-500 px-5 py-2.5 font-semibold text-white hover:bg-teal-600">立即联系</button>
+              <button onClick={() => toggleSave(selectedItem.id)} className="rounded-full border border-slate-200 px-5 py-2.5 font-semibold text-slate-700 hover:bg-slate-50">{savedIds.includes(selectedItem.id) ? '取消收藏' : '加入收藏'}</button>
+            </div>
+          </div>
+          <button onClick={() => setSelectedItem(null)} className="absolute inset-0 -z-10 cursor-default" aria-label="关闭弹窗背景" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<XunWuJiWebApp />);
+    </script>
+</body>
+</html>
